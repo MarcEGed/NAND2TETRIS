@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "stdio.h": "c",
+        "string_utils.h": "c",
+        "compare": "c",
+        "instruction_t.h": "c",
+        "string.h": "c",
+        "file_utils.h": "c",
+        "encoder.h": "c"
+    }
+}
