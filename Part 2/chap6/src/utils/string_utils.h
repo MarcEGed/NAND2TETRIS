@@ -8,7 +8,6 @@ char* remove_comments(char* str);
 char start_char(const char* str);
 char** split(const char* str, char sep, int* out_count);
 int str_equal(const char* a, const char* b);
-int is_numeric(const char* str);
 size_t len_str(const char* str);
 
 #endif

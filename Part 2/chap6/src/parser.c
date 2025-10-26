@@ -13,6 +13,11 @@ int isA_inst(char* line){
     return 0;
 }
 
+int isL_inst(char* line) {
+    line = trim(line);
+    return (line[0] == '(' && line[strlen(line) - 1] == ')');
+}
+
 Instruction parse_line(char* line){
     Instruction instr = {0};
 
@@ -26,6 +31,14 @@ Instruction parse_line(char* line){
             instr.symbol[j++] = line[i++];
         }
         instr.symbol[j] = '\0';
+
+    }else if (isL_inst(line)){
+        instr.type = L_INSTRUCTION;
+        size_t len = strlen(line);
+        if (len > 2){
+            strncpy(instr.symbol, line+1, len-2);
+            instr.symbol[len-2] = '\0';
+        }
     }else{
         instr.type = C_INSTRUCTION;
         instr.dest[0] = '\0'; 

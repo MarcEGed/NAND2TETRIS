@@ -4,9 +4,12 @@
 #include "utils/tables.h"
 #include "parser.h"
 #include "encoder.h"
+#include "symbol_table.h"   // needed to resolve symbols
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
+// Lookup table helper
 unsigned short lookup(MapEntry* table, int size, const char* key){
     for (int i = 0; i < size; i++) {
         if (str_equal(table[i].name, key)) return table[i].bits;
@@ -14,17 +17,8 @@ unsigned short lookup(MapEntry* table, int size, const char* key){
     return 0;
 }
 
-unsigned short encode_instruction(Instruction instr) {
-    if (instr.type == A_INSTRUCTION){
-        return encode_a_instruction(instr.symbol);
-    }else{
-        return encode_c_instruction(instr.dest, instr.comp, instr.jump);
-    }
-}
-
-unsigned short encode_a_instruction(const char* symbol) {
-    int value = atoi(symbol);
-    return (unsigned short)value;
+unsigned short encode_a_instruction(int value) {
+    return (unsigned short)(value & 0x7FFF); // mask 15 bits
 }
 
 unsigned short encode_c_instruction(const char* dest, const char* comp, const char* jump) {

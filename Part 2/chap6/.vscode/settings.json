@@ -6,6 +6,8 @@
         "instruction_t.h": "c",
         "string.h": "c",
         "file_utils.h": "c",
-        "encoder.h": "c"
+        "encoder.h": "c",
+        "tables.h": "c",
+        "parser.h": "c"
     }
 }
