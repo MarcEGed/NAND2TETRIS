@@ -1,0 +1,26 @@
+CC = gcc
+
+CFLAGS = -I src -I src/utils -Wall -Wextra -O2
+
+SRCS = src/assembler.c \
+       src/parser.c \
+       src/encoder.c \
+       src/symbol_table.c \
+       src/utils/string_utils.c \
+       src/utils/tables.c \
+       src/utils/file_utils.c
+
+
+TARGET = assembler.exe
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CC) $(SRCS) $(CFLAGS) -o $(TARGET)
+
+
+clean:
+	rm -f $(TARGET) *.o
+
+
+.PHONY: all clean

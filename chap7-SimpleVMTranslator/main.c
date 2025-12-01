@@ -1,0 +1,49 @@
+#include "src/parser.h"
+#include "src/CodeWriter.h"
+#include <stdlib.h>
+
+
+int main(int argc, char** argv) {
+    if (argc != 3) {
+        printf("Usage: %s input.vm output.vm\n", argv[0]);
+        return 1;
+    }
+
+    const char* input = argv[1];
+    const char* out   = argv[2];
+    printf("%s %s \n", input, out);
+
+    Parser* p = create_parser(argv[1]);
+
+    CodeWriter cw;
+    create_codewriter(&cw, out);
+    codewriter_setFileName(&cw, input);
+
+    while (parser_hasMoreCommands(p)){
+        parser_advance(p);
+        C_t type = parser_commandType(p);
+
+        if (type == C_ARITHMETIC){
+            char* cmd = parser_cmd(p);
+            codewriter_writeArithmetic(&cw, cmd);
+            free(cmd);
+        }
+        else if (type == C_PUSH || type == C_POP){
+            char* segment = parser_arg1(p);
+            int index = parser_arg2(p);
+            printf("DEBUG: segment = '%s'\n", segment);
+            printf("DEBUG: index = %d\n",index);
+            if (type == C_PUSH) codewriter_writePushPop(&cw, 0, segment, index);
+            if (type == C_POP)  codewriter_writePushPop(&cw, 1, segment, index);
+            
+            free(segment);
+        }
+
+    }
+
+    
+    destroy_parser(p);
+    codewriter_close(&cw);
+
+    return 0;
+}
