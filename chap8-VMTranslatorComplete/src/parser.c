@@ -61,11 +61,21 @@ int parser_advance(Parser* p){
 C_t parser_commandType(Parser* p){
     if (strncmp(p->current, "push", 4) == 0){
         return C_PUSH;
-    }
-    if (strncmp(p->current, "pop", 3) == 0){
+    }else if (strncmp(p->current, "pop", 3) == 0){
         return C_POP;
-    }
-    else{
+    }else if (strncmp(p->current, "label", 5) == 0){
+        return C_LABEL;
+    }else if (strncmp(p->current, "goto", 4) == 0){
+        return C_GOTO;
+    }else if (strncmp(p->current, "if-goto", 7) == 0){
+        return C_IF;
+    }else if (strncmp(p->current, "function", 8) == 0){
+        return C_FUNCTION;
+    }else if (strncmp(p->current, "call", 4) == 0){
+        return C_CALL;
+    }else if (strncmp(p->current, "return", 6) == 0){
+        return C_RETURN;
+    }else{
         return C_ARITHMETIC;
     }
 }

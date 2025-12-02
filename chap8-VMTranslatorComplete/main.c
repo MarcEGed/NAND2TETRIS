@@ -1,7 +1,7 @@
 #include "src/parser.h"
 #include "src/CodeWriter.h"
 #include <stdlib.h>
-
+#include <string.h>
 
 int main(int argc, char** argv) {
     if (argc != 3) {
@@ -18,6 +18,8 @@ int main(int argc, char** argv) {
     CodeWriter cw;
     create_codewriter(&cw, out);
     codewriter_setFileName(&cw, input);
+    codewriter_writeInit(&cw);
+    cw.currentFunction[0] = '\0';
 
     while (parser_advance(p)){
         C_t type = parser_commandType(p);
@@ -36,10 +38,34 @@ int main(int argc, char** argv) {
             if (type == C_POP)  codewriter_writePushPop(&cw, 1, segment, index);
             
             free(segment);
+        }else if (type == C_LABEL){
+            char* labelName = parser_arg1(p);
+            codewriter_writeLabel(&cw, labelName);
+            free(labelName);
+        }else if (type == C_GOTO){
+            char* labelName = parser_arg1(p);
+            codewriter_writeGoto(&cw, labelName);
+            free(labelName);
+        }else if (type == C_IF){
+            char* labelName = parser_arg1(p);
+            codewriter_writeIf(&cw, labelName);
+            free(labelName);
+        }else if (type == C_FUNCTION) {
+            char* funcName = parser_arg1(p);
+            int nLocals = parser_arg2(p);
+            codewriter_writeFunction(&cw, funcName, nLocals);
+            strcpy(cw.currentFunction, funcName); // track current function
+            free(funcName);
+        }else if (type == C_CALL) {
+            char* funcName = parser_arg1(p);
+            int nArgs = parser_arg2(p);
+            codewriter_writeCall(&cw, funcName, nArgs);
+            free(funcName);
+        }else if (type == C_RETURN) {
+            codewriter_writeReturn(&cw);
         }
 
     }
-
     
     destroy_parser(p);
     codewriter_close(&cw);
