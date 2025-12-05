@@ -1,0 +1,4 @@
+// Main.vm - minimal function
+function Main.main 0
+push constant 42
+return

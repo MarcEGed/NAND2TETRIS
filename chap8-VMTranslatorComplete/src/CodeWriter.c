@@ -24,7 +24,6 @@ void codewriter_writeInit(CodeWriter* cw){
         "@SP\n"
         "M=D\n"
 
-        "// Initialize pointers\n"
         "@300\n"       // LCL = 300
         "D=A\n"
         "@LCL\n"
@@ -44,10 +43,6 @@ void codewriter_writeInit(CodeWriter* cw){
         "D=A\n"
         "@THAT\n"
         "M=D\n"
-
-        "// Call Sys.init\n"
-        "@Sys.init\n"
-        "0;JMP\n"
     );
 }
 
@@ -101,6 +96,16 @@ void codewriter_writeArithmetic(CodeWriter* cw, const char* command) {
             "A=A-1\n"   // move to x
             "M=D+M\n"); // x = x + y
     }
+    else if (strcmp(command, "sub") == 0){
+        fprintf(cw->out,"//sub\n");
+        fprintf(out,
+            "@SP\n"
+            "M=M-1\n"   // SP--
+            "A=M\n"
+            "D=M\n"     // D = y (top of stack)
+            "A=A-1\n"   // move to x
+            "M=M-D\n"); // x = x - y
+    }
     else if (strcmp(command, "neg") == 0){
         fprintf(cw->out,"//neg\n");
         fprintf(out,
@@ -111,23 +116,25 @@ void codewriter_writeArithmetic(CodeWriter* cw, const char* command) {
     }
     else if (strcmp(command, "and") == 0){
         fprintf(cw->out,"//and\n");
-        popStackToD(out); //D = y
         fprintf(out,
             "@SP\n"
+            "M=M-1\n"   // SP--
             "A=M\n"
-            "D=M&D\n"     //D = y&M
+            "D=M\n"     // D = y (top of stack)
+            "A=A-1\n"   // move to x
+            "M=D&M\n"   // x = x & y
         );
-        pushDToStack(out);
     }
     else if (strcmp(command, "or") == 0) {
         fprintf(cw->out,"//or\n");
-        popStackToD(out);
         fprintf(out,
             "@SP\n"
+            "M=M-1\n"   // SP--
             "A=M\n"
-            "D=M|D\n"
+            "D=M\n"     // D = y (top of stack)
+            "A=A-1\n"   // move to x
+            "M=D|M\n"   // x = x | y
         );
-        pushDToStack(out);
     }
     else if (strcmp(command, "not") == 0) {
         fprintf(cw->out,"//not\n");
@@ -148,8 +155,7 @@ void codewriter_writeArithmetic(CodeWriter* cw, const char* command) {
         // pop x → M
         fprintf(out,
             "@SP\n"
-            "M=M-1\n"
-            "A=M\n"
+            "AM=M-1\n"
             "D=M-D\n"       //D = x-y
         );
 
@@ -237,11 +243,9 @@ void codewriter_writeFunction(CodeWriter* cw, const char* functionName, int numL
     for (int i = 0; i < numLocals; i++) {
         fprintf(cw->out,
             "// initialize local %d\n"
-            "@0\n"
-            "D=A\n"
             "@SP\n"
             "A=M\n"
-            "M=D\n"
+            "M=0\n"
             "@SP\n"
             "M=M+1\n", i);
     }
@@ -252,23 +256,29 @@ void codewriter_writeCall(CodeWriter* cw, const char* functionName, int nArgs){
     //ARG       -> points to the arguments passed to the function
     //THIS/THAT -> pointer for internal use
     //THAT is used for array addressing, THIS is a pointer to an object's fields
-    char returnLabel[64];
-    sprintf(returnLabel, "%s$ret.%d", cw->currentFunction[0] ? cw->currentFunction : "GLOBAL", cw->labelCounter++);
-    
-    fprintf(cw->out, "// call %s %d\n", functionName, nArgs);
+    char returnLabel[128];
 
-    //push return address
-    fprintf(cw->out,
+    // if currentFunction is empty, use GLOBAL
+    const char* base = (cw->currentFunction[0] ? cw->currentFunction : "GLOBAL");
+    sprintf(returnLabel, "%s$ret.%d", base, cw->labelCounter++);
+
+    FILE* out = cw->out;
+
+    fprintf(out, "// call %s %d\n", functionName, nArgs);
+
+    // push return address
+    fprintf(out,
         "@%s\n"
         "D=A\n"
         "@SP\n"
         "A=M\n"
         "M=D\n"
         "@SP\n"
-        "M=M+1\n", returnLabel);
+        "M=M+1\n",
+        returnLabel);
 
-    //push LCL to save caller's local pointer, to continue after return
-    fprintf(cw->out,
+    // push LCL
+    fprintf(out,
         "@LCL\n"
         "D=M\n"
         "@SP\n"
@@ -277,8 +287,8 @@ void codewriter_writeCall(CodeWriter* cw, const char* functionName, int nArgs){
         "@SP\n"
         "M=M+1\n");
 
-    //push ARG, it must survive the call from the caller
-    fprintf(cw->out,
+    // push ARG
+    fprintf(out,
         "@ARG\n"
         "D=M\n"
         "@SP\n"
@@ -287,8 +297,8 @@ void codewriter_writeCall(CodeWriter* cw, const char* functionName, int nArgs){
         "@SP\n"
         "M=M+1\n");
 
-    //push THIS
-    fprintf(cw->out,
+    // push THIS
+    fprintf(out,
         "@THIS\n"
         "D=M\n"
         "@SP\n"
@@ -297,8 +307,8 @@ void codewriter_writeCall(CodeWriter* cw, const char* functionName, int nArgs){
         "@SP\n"
         "M=M+1\n");
 
-    //push THAT
-    fprintf(cw->out,
+    // push THAT
+    fprintf(out,
         "@THAT\n"
         "D=M\n"
         "@SP\n"
@@ -307,32 +317,31 @@ void codewriter_writeCall(CodeWriter* cw, const char* functionName, int nArgs){
         "@SP\n"
         "M=M+1\n");
 
-    //ARG = SP - nArgs - 5 (oldSP - nArgs with oldSP+5 = SP)
-    fprintf(cw->out,
+    // ARG = SP - nArgs - 5
+    fprintf(out,
         "@SP\n"
         "D=M\n"
         "@%d\n"
         "D=D-A\n"
-        "@5\n"
-        "D=D-A\n"
         "@ARG\n"
-        "M=D\n", nArgs);
+        "M=D\n",
+        nArgs + 5);
 
-    //LCL = SP
-    fprintf(cw->out,
+    // LCL = SP
+    fprintf(out,
         "@SP\n"
         "D=M\n"
         "@LCL\n"
         "M=D\n");
 
-    //goto functionName
-    fprintf(cw->out,
+    // jump to the function
+    fprintf(out,
         "@%s\n"
-        "0;JMP\n", functionName);
+        "0;JMP\n",
+        functionName);
 
-    //return label
-    fprintf(cw->out,
-        "(%s)\n", returnLabel);
+    // place return label
+    fprintf(out, "(%s)\n", returnLabel);
 }
 
 void codewriter_writeReturn(CodeWriter* cw){
@@ -448,8 +457,8 @@ void pushSegment(FILE* out, const char* segment, int value, const char* filename
 }
 
 void popSegment(FILE* out, const char* segment, int value, const char* filename) {
-    popStackToD(out);
     if (strcmp(segment, "temp") == 0) {
+        popStackToD(out);
         //starts at temp0 = RAM[5]
         fprintf(out,
             "@%d\n"
@@ -457,6 +466,7 @@ void popSegment(FILE* out, const char* segment, int value, const char* filename)
             5 + value);
     }
     else if (strcmp(segment, "pointer") == 0) {
+        popStackToD(out);
         //return in THIS/THAT depending on value
         fprintf(out,
             "@%s\n"
@@ -464,6 +474,7 @@ void popSegment(FILE* out, const char* segment, int value, const char* filename)
             value == 0 ? "THIS" : "THAT");
     }
     else if (strcmp(segment, "static") == 0) {
+        popStackToD(out);
         //return M[filename.index]
         fprintf(out,
             "@%s.%d\n"
@@ -474,6 +485,8 @@ void popSegment(FILE* out, const char* segment, int value, const char* filename)
         //compute address then return M[R14]
         const char* base = segmentBase(segment);
         computeSegmentAddress(out, base, value);
+        popStackToD(out);
+
         fprintf(out,
             "@R13\n"
             "A=M\n"

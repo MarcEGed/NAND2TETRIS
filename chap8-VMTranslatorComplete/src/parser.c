@@ -30,15 +30,21 @@ static void strip(char* s){
         *comment = '\0';    //null character the comment
     }
 
-    size_t len = strlen(s);
+    size_t len = strlen(s); //remove trailing newline
     if (len > 0 && s[len - 1] == '\n') {
         s[len - 1] = '\0';
         len--;
     }
 
+    //remove trailing spaces
     for (int i = strlen(s)-1; i>=0 && is_space(s[i]); i--){
         s[i] = '\0';
     }
+
+    //remove leading spaces/tabs
+    char* p = s;
+    while (*p == ' ' || *p == '\t') p++;
+    if (p != s) memmove(s, p, strlen(p) + 1);
 }
 
 int parser_hasMoreCommands(Parser* p){
